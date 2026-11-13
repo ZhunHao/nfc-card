@@ -3,6 +3,15 @@
 Two battery-free PCB business cards. Tap one on a phone and its NFC field powers an
 ATtiny1616 that animates 20 Charlieplexed red LEDs. There's no battery and no button.
 
+![Orbit card animating on harvested NFC power](gallery/orbit-android.webp)
+
+The Orbit card on the back of an Android phone, running only on power harvested from the NFC
+field: an ISS pass, the ground stations, then the 2,000 km pass.
+
+![Assembled Orbit card](gallery/orbit-photo.jpg)
+
+The Terminal card hasn't been built yet, so these are the KiCad renders of both designs:
+
 | C1 Orbit | B3 Terminal |
 | --- | --- |
 | ![Orbit card, front](gallery/orbit-top.png) | ![Terminal card, front](gallery/terminal-top.png) |
@@ -14,8 +23,7 @@ ATtiny1616 that animates 20 Charlieplexed red LEDs. There's no battery and no bu
 - **B3 Terminal**: a macOS Terminal window running `ping`. Each output line gets a status LED,
   and a progress bar fills along the bottom.
 
-Renders are generated from the KiCad boards. The phone number is left off the committed
-boards; see [Your own contact details](#your-own-contact-details).
+The phone number is left off the committed boards; see [Your own contact details](#your-own-contact-details).
 
 ## Inspiration and credit
 
@@ -56,6 +64,8 @@ full animation runs on harvested power. iOS only powers the field in short polls
 iPhone tap gives a single LED blink and opens the URL. See
 [docs/bringup](docs/bringup/2026-11-08-orbit-first-cards.md).
 
+<img src="gallery/orbit-lit.jpg" alt="Orbit card on the bench during bring-up, two LEDs lit, pogo clip attached" width="420">
+
 ## Repository layout
 
 ```
@@ -67,7 +77,7 @@ scripts/    checks (ERC/DRC/parity/netlist/coil loops/thickness), antenna genera
             DFM clean-up, fab export (single card and two-card panel)
 sim/        LTspice decks and coil inductance estimates
 docs/       design concepts, NFC tag setup, panel quotes, bring-up log
-gallery/    renders of both cards
+gallery/    photos of the built Orbit card and renders of both designs
 ```
 
 ## Build and check
@@ -94,6 +104,8 @@ Export a JLCPCB package (gerbers, BOM, CPL with JLC rotation offsets, renders). 
 ```bash
 python3 scripts/export-card.py orbit
 ```
+
+![Programming setup: pogo clip, breadboard and UPDI Friend](gallery/programming.jpg)
 
 Flash a card over UPDI (Adafruit UPDI Friend plus a 0.1" pogo clip). See
 [firmware/README.md](firmware/README.md):
