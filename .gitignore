@@ -1,0 +1,46 @@
+# KiCad
+*-backups/
+*.kicad_prl
+*.kicad_pcb-bak
+*.sch-bak
+fp-info-cache
+~*.*
+# KiCad autosave / lock
+_autosave-*
+*.lck
+# Build & fab output (regenerated; keep released zips only)
+*.o
+*.elf
+*.hex.tmp
+# OS
+.DS_Store
+# Worktrees
+.worktrees/
+
+# JLCPCB parts cache (large)
+*.sqlite3
+*.sqlite3-journal
+
+# Check-script reports and other generated output
+build/
+
+# KiCad 10 design-history store (contains a nested git repo) and editor locks
+.history/
+~*.lck
+
+# Python bytecode
+__pycache__/
+
+# LTspice MCP run cache
+.ltspice-mcp/
+ltspice-mcp.toml
+_restore_backup_*/
+
+# Private contact details (see contact.example.json) and generated fab packages
+contact.local.json
+fab/*
+!fab/reference/
+
+# Local tooling
+.claude/
+.mcp.json

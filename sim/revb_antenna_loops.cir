@@ -1,0 +1,37 @@
+* Rev B antenna (option A coil) detuned by each board's worst supply loop
+* Coil: NFC_Antenna_Rect_ID1_4turn_W090, AN11276 2.39 uH (build plan). Rs 1.0 ohm:
+*   ~1.0 m of 0.90 mm x 35 um copper, 0.55 ohm DC, ~1 ohm at 13.56 MHz (estimate).
+* Tank: NT3H2111 Ci 50 pF typ, 44-56 pF (build plan); Rl 5k rough harvester load.
+* Reader field: induced EMF in series with the coil (AC 1 V).
+* Supply loop (scripts/check_loops.py, rev B), modelled as a shorted turn coupled to L1.
+* Caps are near-shorts at 13.56 MHz, so only the copper closes it:
+*   card 1 Orbit    C4-U1 45.6 mm2, 81.3 x 0.56 mm: Lloop 73.9 nH, Rac 0.29 ohm
+*   card 2 Terminal C3-U1 91.7 mm2, 26.3 x 3.48 mm: Lloop 46.9 nH, Rac 0.13 ohm
+* M = B/I * area. B/I at the coil centre is 81.9 uT/A (4 turns, Biot-Savart on the
+* turn centrelines). Near the turns the field is higher, so fb scales it 1-3x; fb=0 is
+* no loop. Lloop and Rac use Grover's rectangle formula and skin depth, 0.3 mm track.
+* Results (2026-10-27): no loop 14.553 MHz, Q 20.73 at 50 pF (AN11276: 14.56 MHz).
+*   fb=3: Orbit +5 kHz, Terminal +33 kHz, Q 20.71; |V(la)| at 13.56 MHz -0.2 % / -2.6 %.
+*   Ci 44 / 56 pF: 15.51 / 13.75 MHz, |V(la)| at 13.56 MHz 4.1 / 18.6 (7.1 at 50 pF).
+*   The loops are negligible next to the chip's Ci spread.
+.param card=1 fb=0 Ci=50p
+.param L1v=2.39u
+.param Ll=table(card,1,73.9n,2,46.9n)
+.param Rlp=table(card,1,0.29,2,0.13)
+.param Alp=table(card,1,45.6e-6,2,91.7e-6)
+.param kk={max(fb*81.9e-6*Alp/sqrt(L1v*Ll),1e-6)}
+Vind e 0 AC 1
+L1 e n1 {L1v}
+R1 n1 la 1.0
+Ci la 0 {Ci}
+Rl la 0 5k
+L2 m 0 {Ll}
+R2 m 0 {Rlp}
+K1 L1 L2 {kk}
+.ac lin 4001 12Meg 17Meg
+.step param card list 1 2
+.step param fb list 0 1 2 3
+.step param Ci list 44p 50p 56p
+.meas ac vpk MAX mag(V(la))
+.meas ac v1356 FIND mag(V(la)) AT 13.56Meg
+.end

@@ -1,0 +1,81 @@
+* Rev B power path, Orbit and Terminal (identical netlists, fab/*-v2/netlist.xml):
+*   U1 VOUT -> C2 100n -> JP1 0R -> VCC: C3 100n, U2, R7 2.2k -> SS_CAP: C4 10u;
+*   Q1 DMP21D0UFB4 (S=VCC, D=SS_CAP) bypasses R7 once U2 pulls SS_GATE (PC0) low;
+*   R8 100k holds the gate at VCC from reset.
+* Harvester: current source clamped at 3.3 V (NT3H2111 Vout,max). Field off at 350 ms.
+* U2: 0.4 mA above 1.8 V (BODLEVEL0 typ), 20 uA below (ASSUMED reset current).
+* Firmware: after 100 ms with VCC >= 1.8 V (BOARD_POWER_QUALIFY_MS) the bypass latches and
+* the animation starts. Shared slots: 6 pulses of 62 us per 5 ms frame (BOARD_SHARED_SLOTS,
+* 62 us cap), spaced ~833 us; the worst lit-slot count in check_avr_timing is 6.
+* LED path: Rpin + 100R + KT-0603R + 100R + Rpin. Rpin 50 ohm per GPIO (ASSUMED; Microchip
+* only publishes curves). LED model from build/spice-b3/led_drive.cir: Vf(20 mA) = 2.0 V
+* (Is 1.5e-17) or 2.4 V (Is 6.7e-21, datasheet max).
+* C4: 10u nominal; 4.7u stands in for 0402 X5R DC-bias loss (ASSUMED, not measured).
+* Results (2026-10-27), C4 10u, typ LED (2.0 V); 4.7u or 2.4 V LED in brackets:
+*   Iav     to 1.8 V   VCC min running   LED peak / avg (one lit LED)   hold-up to 1.8 V
+*   0.45m   33.6 ms    1.81 (at BOD)     0.6 / 0.05 mA                  0.4 ms
+*   0.5m    27.4 ms    1.98 [2.36]       1.1 / 0.08 mA                  4.0 ms
+*   0.75m   9.8 ms     3.02              4.3 / 0.32 mA                  21 ms [10 ms]
+*   1m      1.06 ms    3.24              5.0 / 0.37 [0.28] mA           24 ms [12 ms]
+*   5m      0.08 ms    3.32              5.2 / 0.39 mA                  25 ms
+*   Latch at t18 + 100 ms; Vgs at the latch -1.8 to -3.3 V (Vth max -1.0 V).
+*   Below ~0.75 mA C4 still lags VCC by R7's drop when Q1 latches: 0.2-0.4 A charge-sharing
+*   spike for ~10 us, VCC steps down ~0.2 V (2.56 -> 2.35 V at 0.5 mA).
+.param Iav=1m C4v=10u Isat=1.5e-17
+.param Rpin=50
+I1 0 vout PWL(0 {Iav} 350m {Iav} 350.01m 0)
+DZ 0 vout DCLAMP
+C2 vout 0 100n
+RJP1 vout vcc 1m
+C3 vcc 0 100n
+* U2 supply current
+BMCU vcc 0 I=20u+0.38m*(1+tanh((V(vcc)-1.8)/0.01))/2
+* Soft-start reservoir
+R7 vcc ss 2.2k
+Vq ss ssd 0
+C4 ssd 0 {C4v}
+M1 ss g vcc vcc QP
+R8 vcc g 100k
+* Firmware qualify timer: 1 V per 100 ms while VCC >= 1.8 V, reset below; latch at 1 V
+Ct tmr 0 1u
+Bt 0 tmr I=if(V(vcc)>=1.8, 10u, -10m*V(tmr))
+Dt 0 tmr DIDEAL
+Cl lat 0 1u
+Bl 0 lat I=if(V(tmr)>1, 1m, 0)
+Dlat lat lcl DIDEAL
+Vlcl lcl 0 1
+Rlat lat 0 1G
+Rtmr tmr 0 1G
+* PC0 low after the latch (PC0 output stage, Rpin)
+S1 g 0 lat 0 SWPC
+* LED drive: the two GPIOs as one switch, enabled after the latch
+Bdrv drv 0 V=V(lat)*V(clk)
+Vclk clk 0 PULSE(0 1 0 1u 1u 62u 833.33u)
+S2 vcc na drv 0 SWLED
+Rla na nb 100
+DL nb nc LEDR
+Rlc nc 0 {100+Rpin}
+.model DCLAMP D(BV=3.3 IBV=1m RS=1)
+.model DIDEAL D(Ron=1m Roff=1G Vfwd=0)
+.model LEDR D(Is={Isat} N=2 Rs=10)
+.model SWPC SW(Ron={Rpin} Roff=1G Vt=0.5 Vh=0.1)
+.model SWLED SW(Ron={Rpin} Roff=1G Vt=0.5)
+* DMP21D0UFB4: Vto -0.7 V typ; Kp/Rd fitted to RDS(on) <= 0.96 ohm @ -1.8 V, <= 0.495 @ -4.5 V;
+* Cgs/Cgd from Ciss 76.5 pF, Crss 10.7 pF (Diodes datasheet)
+.model QP VDMOS(pchan Vto=-0.7 Kp=1.3 Rd=0.2 Rs=0.01 Cgs=66p Cgdmax=11p Cgdmin=3p Cjo=14p Is=1e-12 Rb=0.5)
+.step param Iav list 0.42m 0.45m 0.5m 0.75m 1m 2m 5m
+.step param C4v list 10u 4.7u
+.step param Isat list 1.5e-17 6.7e-21
+.tran 0 420m 0 5u uic
+.meas tran t18 WHEN V(vcc)=1.8 RISE=1
+.meas tran tlat WHEN V(lat)=0.5 RISE=1
+.meas tran vprelat FIND V(vcc) AT 99m
+.meas tran vminlat MIN V(vcc) FROM 99m TO 300m
+.meas tran vminrun MIN V(vcc) FROM 300m TO 350m
+.meas tran vmaxrun MAX V(vcc) FROM 300m TO 350m
+.meas tran vgs MIN V(g)-V(vcc) FROM 300m TO 350m
+.meas tran iq1pk MAX I(Vq) FROM 0 TO 350m
+.meas tran ledpk MAX I(Rla) FROM 300m TO 350m
+.meas tran ledavg AVG I(Rla) FROM 300m TO 350m
+.meas tran toff WHEN V(vcc)=1.8 FALL=LAST
+.end

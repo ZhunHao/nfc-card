@@ -1,0 +1,26 @@
+* U2 supply at its pins through the C3 decoupling loop, four layouts
+* Loop R/L estimated from the measured copper path (C3 -> U2 VCC, U2 GND -> C3):
+*   case 1 Terminal rev A  9.7 mm,  4.5 mm^2  ~5.7 nH  24 mOhm
+*   case 2 Terminal rev B 34.8 mm, 76.6 mm^2 ~33 nH  114 mOhm
+*   case 3 Orbit rev B     4.6 mm,  1.1 mm^2  ~2.3 nH  15 mOhm
+*   case 4 Terminal rev B after the fix (C3 GND straight to pin 3): 4.0 mm, 1.1 mm^2 ~2.3 nH 13 mOhm
+* Rail: harvester (2 mA available, clamped ~2.2 V) on C2+C3 = 200 nF; C4 (10 uF) left out = worst case.
+* U2 load: 0.4 mA quiescent + one LED pulse (2.2 mA, 60 us every 250 us, 5 ns edges)
+* + ASSUMED core switching spikes 10 mA peak, 4 ns base, at the 1 MHz clock (not a datasheet figure),
+* + ASSUMED 200 pF on-die supply capacitance.
+.param case=2
+.param Lp=table(case,1,5.7n,2,33n,3,2.3n,4,2.3n)
+.param Rp=table(case,1,0.024,2,0.114,3,0.015,4,0.013)
+I1 0 c 2m
+DZ 0 c DCLAMP
+C23 c 0 200n IC=2.2
+Rloop c m {Rp}
+Lloop m u {Lp}
+Cdie u 0 200p IC=2.2
+Iq u 0 0.4m
+Iled u 0 PULSE(0 2.2m 0 5n 5n 60u 250u)
+Ispk u 0 PULSE(0 10m 0 2n 2n 0 1u)
+.model DCLAMP D(BV=2.2 IBV=1m RS=1)
+.step param case list 1 2 3 4
+.tran 0 560u 440u 0.5n uic
+.end

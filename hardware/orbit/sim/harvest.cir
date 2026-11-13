@@ -1,0 +1,31 @@
+* Harvest power budget, one Charlieplex path (shared by both personal cards)
+* NTAG VOUT modelled as current source Ih, clamped near Vout,max 3.3 V (NXP DS: 3.3 V max, 14 A/m, 1 mA)
+* Rev B adds a soft-start reservoir (C4 10 uF via R7 2.2k / Q1), not modelled here: see sim/vout_reservoir.cir at the repo root.
+* C2+C3 = 200 nF. JP1 0R. MCU worst ~0.6 mA (8 MHz max 3.5 mA @3V /8, plus margin)
+* LED path: GPIO(Ron) - 100R - LED - 100R - GPIO(Ron). Ron=100 ohm per pin (assumed, pessimistic)
+* Scan: 62 us on per 250 us slot (firmware full brightness at duty 4/16), every slot = worst load
+.param ih=5m isd=1.5e-17
+I1 0 vout {ih}
+Dcl vout ncl DCL
+Vcl ncl 0 2.7
+C23 vout 0 200n
+Rjp vout vcc 0.01
+Rmcu vcc 0 3.33k
+S1 vcc a ctl 0 SWP
+Rr1 a b 100
+D1 b c LED
+Rr2 c d 100
+S2 d 0 ctl 0 SWP
+Vctl ctl 0 PULSE(0 1 0 1u 1u 62u 250u)
+.model SWP SW(Ron=100 Roff=1G Vt=0.5 Vh=0)
+.model DCL D(Is=1e-12 N=1)
+* Red AlGaInP fit: N=2, Rs=10; isd=1.5e-17 -> 2.0 V @20 mA (typ), 6.7e-21 -> 2.4 V @20 mA (KT-0603R max)
+.model LED D(Is={isd} N=2 Rs=10)
+.step param ih list 0.5m 1m 1.5m 2m 3m 5m
+.step param isd list 1.5e-17 6.7e-21
+.tran 0 6m 0 1u
+.meas tran vmin MIN V(vcc) FROM 3m TO 6m
+.meas tran vavg AVG V(vcc) FROM 3m TO 6m
+.meas tran ipk MAX I(Rr1) FROM 3m TO 6m
+.meas tran iavg AVG I(Rr1) FROM 3m TO 6m
+.end

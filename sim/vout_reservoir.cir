@@ -1,0 +1,31 @@
+* NTAG VOUT rail: NTUAS 200 nF vs Wilson Harper 10 uF soft-start reservoir
+* Harvester: current-limited source (Iav) clamped near 2.2 V (NT3H2111 typ. 5 mA at 2 V with a phone).
+* Load: ATtiny ~0.4 mA at 2 V, plus one Charlieplexed red LED per 250 us slot (20 slots in 5 ms),
+* driven 60 us, through two 100 R resistors.
+.param Iav=2m Cb=1p
+I1 0 vcc {Iav}
+DZ 0 vcc DCLAMP
+C2 vcc 0 100n
+C3 vcc 0 100n
+* Wilson's soft-start: Cb charges through 2.2k until the MCU closes the P-FET at 120 ms
+Rss vcc nb 2.2k
+S1 vcc nb gate 0 SWON
+Vgate gate 0 PWL(0 0 120m 0 120.01m 1)
+Cbulk nb 0 {Cb}
+Rmcu vcc 0 5k
+* LED path: switch stands in for the two GPIO drivers
+S2 vcc nl drv 0 SWON
+Rled nl na 200
+DL na 0 LEDR
+Vdrv drv 0 PULSE(0 1 0 1u 1u 60u 250u)
+.model DCLAMP D(BV=2.2 IBV=1m RS=1)
+.model LEDR D(IS=1e-19 N=1.8 RS=5)
+.model SWON SW(Ron=1 Roff=1G Vt=0.5)
+.step param Cb list 1p 10u
+.step param Iav list 1m 2m 5m
+.tran 0 200m 0 2u uic
+.meas tran vmin MIN V(vcc) FROM 150m TO 200m
+.meas tran vmax MAX V(vcc) FROM 150m TO 200m
+.meas tran iled MAX I(Rled) FROM 150m TO 200m
+.meas tran t18 WHEN V(vcc)=1.8 RISE=1
+.end

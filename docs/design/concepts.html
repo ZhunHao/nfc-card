@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Personal NFC Card Concepts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f3ef;--ink:#1b1b1a;--muted:#6b6a64;--rule:#dcdad2;--card:#ffffff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#141413;--ink:#ecebe6;--muted:#9a988f;--rule:#2c2b28;--card:#1c1c1a}}
+:root[data-theme="dark"]{--bg:#141413;--ink:#ecebe6;--muted:#9a988f;--rule:#2c2b28;--card:#1c1c1a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:40px 16px 80px}
+h1{font-size:28px;margin:0 0 6px;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:780px;margin:0 0 18px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:2}
+button,a.jump{font:inherit;font-size:13px;padding:7px 14px;border-radius:999px;border:1px solid var(--rule);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.group{border-top:2px solid var(--ink);margin-top:36px;padding-top:18px}
+.group>h2{font-size:24px;margin:0 0 4px}
+.group>p{color:var(--muted);margin:0 0 6px;max-width:820px}
+section.variant{border-top:1px solid var(--rule);padding:24px 0 8px;margin-top:18px}
+.head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.head h3{margin:0;font-size:19px}
+.tag{font:500 12px JetBrains Mono,monospace;color:var(--muted)}
+.pitch{color:var(--muted);margin:0 0 16px;max-width:820px}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media (max-width:820px){.sides{grid-template-columns:1fr}}
+figure{margin:0}
+figcaption{font:500 11px JetBrains Mono,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 0}
+svg.cardsvg{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 18px rgba(0,0,0,.22)) drop-shadow(0 2px 3px rgba(0,0,0,.18));overflow:visible}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:16px 0 0;font-size:13.5px}
+dt{color:var(--muted)} dd{margin:0}
+.notes{border-top:1px solid var(--rule);margin-top:44px;padding-top:24px;font-size:14px}
+.notes h2{font-size:18px;margin:0 0 10px}
+.notes li{margin:4px 0}
+code{font:13px JetBrains Mono,monospace}
+</style>
+</head>
+<body>
+<main>
+  <h1>Personal NFC card: shortlist</h1>
+  <p class="lede">Each variant reuses the NTUAS electronics unchanged: NTAG I2C Plus energy harvesting, an ATtiny1616 Charlieplexing up to 20 red LEDs on five pins, and the four-turn perimeter antenna. Only the LED positions, routing, silkscreen and mask colour change. Drawn at ID-1 scale (85.60 × 53.98 mm). The simulated animation lights at most two LEDs at a time, as the real firmware must.</p>
+  <div class="controls">
+    <button id="play" aria-pressed="true">Animation on</button>
+    <button id="lines" aria-pressed="true">Silkscreen art</button>
+    <button id="parts" aria-pressed="true">Components</button>
+    <a class="jump" href="#b3">B3</a><a class="jump" href="#c1">C1</a>
+  </div>
+  <div id="concepts"></div>
+
+  <div class="notes">
+    <h2>Data sources</h2>
+    <ul>
+      <li><b>Stars (A):</b> J2000 positions and V magnitudes from the SIMBAD database (CDS Strasbourg) via <code>astroquery</code> 0.4.11. Each field uses a gnomonic projection with north up and east to the left, as seen looking up. No rotation is applied. Where two stars sit closer than an LED footprint (Shaula and Lesath, Atlas and Pleione, β and α Muscae), the fainter one is a printed dot.</li>
+      <li><b>ISS (C2, C4):</b> TLE from CelesTrak, epoch 24 Oct 2026, propagated with <code>skyfield</code> 1.55. Predictions a week out can drift by a minute or so; re-run before printing a date.</li>
+      <li><b>Sky at the pass (C4):</b> alt/az of bright stars over NTU (1.3483° N, 103.6831° E) at the pass peak, from SIMBAD positions and <code>astropy</code> 8.0.2.</li>
+    </ul>
+    <h2>Fixed by the hardware, same for every variant</h2>
+    <ul>
+      <li><b>LEDs stay red.</b> The harvested rail is about 2 V. The NTUAS plan bans blue, white and green LEDs because their forward voltage is too high to light. Mask colour carries each design's identity instead.</li>
+      <li><b>Up to 20 LEDs, one or two lit at once.</b> Five Charlieplex pins drive at most 20, and the phone supplies about 5 mA.</li>
+      <li><b>Keep-out band:</b> the antenna occupies 4.0–6.45 mm in from every edge, so all art sits inside about 72 × 41 mm.</li>
+      <li><b>Parts on the front only</b> (single-sided assembly), so the MCU block appears on every front. The back is free for contact text.</li>
+      <li>JLCPCB mask colours: green, purple, red, yellow, blue, white, black (<a href="https://jlcpcb.com/capabilities/pcb-capabilities">JLCPCB capabilities</a>).</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+const DATA={"sco":{"leds":[{"x":65.03,"y":15.34,"id":"bet1 Sco","V":2.619999885559082,"label":null},{"x":65.95,"y":18.4,"id":"del Sco","V":2.319999933242798,"label":null},{"x":65.86,"y":22.05,"id":"pi Sco","V":2.9100000858306885,"label":null},{"x":65.92,"y":25.26,"id":"rho Sco","V":3.859999895095825,"label":null},{"x":58.83,"y":21.88,"id":"alf Sco","V":0.9100000262260437,"label":"ANTARES"},{"x":54.15,"y":29.67,"id":"eps Sco","V":2.2899999618530273,"label":null},{"x":53.81,"y":33.44,"id":"mu1 Sco","V":2.9800000190734863,"label":null},{"x":53.32,"y":37.84,"id":"zet2 Sco","V":3.619999885559082,"label":null},{"x":50.06,"y":38.88,"id":"eta Sco","V":3.3299999237060547,"label":null},{"x":45.32,"y":39.12,"id":"tet Sco","V":1.850000023841858,"label":null},{"x":43.83,"y":35.18,"id":"kap Sco","V":2.385999917984009,"label":null},{"x":45.4,"y":32.99,"id":"lam Sco","V":1.6299999952316284,"label":null}],"dots":[{"x":63.44,"y":14.88,"id":"nu Sco","V":4.0,"label":null},{"x":46.0,"y":33.12,"id":"ups Sco","V":2.6500000953674316,"label":null},{"x":60.14,"y":22.03,"id":"M4","V":null,"label":null},{"x":60.75,"y":21.12,"id":"sig Sco","V":2.890000104904175,"label":null},{"x":57.3,"y":23.63,"id":"tau Sco","V":2.809999942779541,"label":null},{"x":42.96,"y":36.46,"id":"iot1 Sco","V":2.992000102996826,"label":null},{"x":42.05,"y":33.38,"id":"G Sco","V":3.2100000381469727,"label":null}],"lines":[[12,0],[0,1],[1,2],[2,3],[1,15],[15,4],[4,16],[16,5],[5,6],[6,7],[7,8],[8,9],[9,17],[17,10],[10,11],[11,13]],"mcu":[8.5,33.6],"scale":1.0,"rot":0},"cru":{"leds":[{"x":64.53,"y":23.7,"id":"alf Cru","V":null,"label":"ACRUX"},{"x":59.32,"y":16.05,"id":"bet Cru","V":1.25,"label":"MIMOSA"},{"x":64.24,"y":10.55,"id":"gam Cru","V":1.6399999856948853,"label":"GACRUX"},{"x":68.54,"y":14.55,"id":"del Cru","V":2.752000093460083,"label":null},{"x":66.42,"y":17.96,"id":"eps Cru","V":3.569999933242798,"label":null},{"x":30.0,"y":24.95,"id":"alf Cen","V":-0.10000000149011612,"label":"RIGIL KENT."},{"x":38.93,"y":20.53,"id":"bet Cen","V":0.5799999833106995,"label":"HADAR"},{"x":77.0,"y":25.8,"id":"lam Cen","V":3.140000104904175,"label":null},{"x":61.39,"y":36.75,"id":"alf Mus","V":2.6489999294281006,"label":null},{"x":61.92,"y":43.45,"id":"gam Mus","V":3.880000114440918,"label":null}],"dots":[{"x":59.63,"y":34.44,"id":"bet Mus","V":null,"label":null},{"x":57.72,"y":17.56,"id":"NGC 4755","V":null,"label":"JEWEL BOX"}],"lines":[[0,2],[1,3],[5,6],[8,10],[8,9]],"mcu":[8.5,33.6],"scale":2.18},"sgr":{"leds":[{"x":65.1,"y":34.38,"id":"gam2 Sgr","V":2.990000009536743,"label":null},{"x":59.19,"y":33.04,"id":"del Sgr","V":2.6679999828338623,"label":null},{"x":57.81,"y":41.32,"id":"eps Sgr","V":1.809999942779541,"label":"KAUS AUS."},{"x":56.53,"y":25.06,"id":"lam Sgr","V":2.809999942779541,"label":null},{"x":49.42,"y":27.94,"id":"phi Sgr","V":3.140000104904175,"label":null},{"x":45.5,"y":26.82,"id":"sig Sgr","V":2.066999912261963,"label":"NUNKI"},{"x":42.88,"y":33.46,"id":"zet Sgr","V":2.5899999141693115,"label":null},{"x":40.9,"y":29.57,"id":"tau Sgr","V":3.309999942779541,"label":null},{"x":62.59,"y":17.31,"id":"mu Sgr","V":3.8499999046325684,"label":null},{"x":60.15,"y":45.8,"id":"eta Sgr","V":3.109999895095825,"label":null},{"x":44.05,"y":17.48,"id":"xi2 Sgr","V":3.509999990463257,"label":null},{"x":38.91,"y":17.58,"id":"pi Sgr","V":2.880000114440918,"label":null},{"x":66.57,"y":23.5,"id":"M8","V":null,"label":"LAGOON"},{"x":67.09,"y":20.96,"id":"M20","V":null,"label":"TRIFID"},{"x":53.09,"y":22.33,"id":"M22","V":null,"label":"M22"},{"x":59.83,"y":8.3,"id":"M17","V":null,"label":"OMEGA"},{"x":55.02,"y":13.66,"id":"M25","V":null,"label":"M25"}],"dots":[{"x":57.94,"y":24.08,"id":"M28","V":null,"label":"M28"}],"lines":[[0,1],[1,2],[2,0],[1,3],[3,4],[1,4],[4,6],[6,2],[4,5],[5,7],[7,6]],"mcu":[8.5,33.6],"scale":1.798},"ple":{"leds":[{"x":52.66,"y":26.29,"id":"* eta Tau","V":2.869999885559082,"label":"ALCYONE"},{"x":44.86,"y":27.34,"id":"*  27 Tau","V":3.630000114440918,"label":"ATLAS"},{"x":64.79,"y":26.1,"id":"*  17 Tau","V":3.700000047683716,"label":"ELECTRA"},{"x":60.35,"y":20.93,"id":"*  20 Tau","V":3.869999885559082,"label":"MAIA"},{"x":58.05,"y":29.48,"id":"*  23 Tau","V":4.179999828338623,"label":"MEROPE"},{"x":63.22,"y":18.9,"id":"* q Tau","V":4.300000190734863,"label":"TAYGETA"},{"x":48.63,"y":40.22,"id":"HD  23753","V":5.449999809265137,"label":null},{"x":65.11,"y":22.51,"id":"*  16 Tau","V":5.460000038146973,"label":"CELAENO"},{"x":63.4,"y":11.32,"id":"*  18 Tau","V":5.639999866485596,"label":null},{"x":59.97,"y":17.13,"id":"*  21 Tau","V":5.760000228881836,"label":"ASTEROPE"},{"x":42.21,"y":34.28,"id":"HD  23923","V":6.1529998779296875,"label":null},{"x":45.84,"y":31.34,"id":"*  26 Tau","V":6.464000225067139,"label":null},{"x":49.78,"y":8.3,"id":"HD  23712","V":6.489999771118164,"label":null},{"x":43.95,"y":20.66,"id":"HD  23873","V":6.585999965667725,"label":null},{"x":41.1,"y":31.49,"id":"HD  23964A","V":6.809999942779541,"label":null},{"x":52.64,"y":22.56,"id":"V* V1229 Tau","V":6.809999942779541,"label":null},{"x":54.96,"y":17.84,"id":"HD  23568","V":6.820000171661377,"label":null},{"x":60.49,"y":45.8,"id":"HD  23410","V":6.908999919891357,"label":null},{"x":36.89,"y":29.17,"id":"HD  24076","V":6.920000076293945,"label":null},{"x":47.95,"y":21.39,"id":"HD  23763","V":6.960000038146973,"label":null}],"dots":[{"x":44.75,"y":25.64,"id":"*  28 Tau","V":5.090000152587891,"label":"PLEIONE"},{"x":59.32,"y":17.68,"id":"*  22 Tau","V":6.421000003814697,"label":null},{"x":53.29,"y":26.07,"id":"*  24 Tau","V":6.28000020980835,"label":null}],"lines":[],"mcu":[8.5,33.6],"scale":20.369},"c2":{"t_sg":"2026-10-27 15:05 UTC","miss_deg":0.34,"track":[[-64.73,-1.35,-46.5],[-63.87,-2.57,-46.1],[-63.01,-3.79,-45.7],[-62.14,-5.01,-45.3],[-61.27,-6.23,-44.9],[-60.4,-7.44,-44.5],[-59.52,-8.66,-44.1],[-58.64,-9.87,-43.7],[-57.74,-11.07,-43.3],[-56.84,-12.28,-42.9],[-55.93,-13.48,-42.5],[-55.01,-14.68,-42.1],[-54.08,-15.87,-41.7],[-53.14,-17.05,-41.3],[-52.18,-18.24,-40.9],[-51.21,-19.41,-40.5],[-50.23,-20.58,-40.1],[-49.23,-21.74,-39.7],[-48.21,-22.89,-39.3],[-47.17,-24.04,-38.9],[-46.11,-25.18,-38.5],[-45.03,-26.3,-38.1],[-43.92,-27.42,-37.7],[-42.8,-28.53,-37.3],[-41.64,-29.62,-36.9],[-40.46,-30.7,-36.5],[-39.25,-31.77,-36.1],[-38.01,-32.83,-35.7],[-36.74,-33.87,-35.3],[-35.44,-34.89,-34.9],[-34.1,-35.9,-34.5],[-32.72,-36.89,-34.1],[-31.31,-37.86,-33.7],[-29.86,-38.81,-33.3],[-28.36,-39.74,-32.9],[-26.82,-40.65,-32.5],[-25.24,-41.53,-32.1],[-23.61,-42.39,-31.7],[-21.94,-43.22,-31.3],[-20.22,-44.02,-30.9],[-18.45,-44.8,-30.5],[-16.63,-45.54,-30.1],[-14.76,-46.25,-29.7],[-12.84,-46.92,-29.3],[-10.86,-47.55,-28.9],[-8.85,-48.15,-28.5],[-6.78,-48.71,-28.1],[-4.66,-49.23,-27.7],[-2.51,-49.7,-27.3],[-0.31,-50.13,-26.9],[1.93,-50.51,-26.5],[4.21,-50.84,-26.1],[6.52,-51.13,-25.7],[8.85,-51.36,-25.3],[11.21,-51.55,-24.9],[13.58,-51.68,-24.5],[15.97,-51.76,-24.1],[18.36,-51.79,-23.7],[20.75,-51.76,-23.3],[23.14,-51.69,-22.9],[25.51,-51.56,-22.5],[27.87,-51.37,-22.1],[30.2,-51.14,-21.7],[32.51,-50.86,-21.3],[34.79,-50.53,-20.9],[37.03,-50.14,-20.5],[39.24,-49.72,-20.1],[41.4,-49.25,-19.7],[43.51,-48.73,-19.3],[45.58,-48.18,-18.9],[47.61,-47.58,-18.5],[49.58,-46.94,-18.1],[51.5,-46.27,-17.7],[53.38,-45.56,-17.3],[55.2,-44.82,-16.9],[56.98,-44.05,-16.5],[58.7,-43.25,-16.1],[60.38,-42.42,-15.7],[62.01,-41.56,-15.3],[63.6,-40.68,-14.9],[65.14,-39.77,-14.5],[66.64,-38.84,-14.1],[68.09,-37.89,-13.7],[69.51,-36.92,-13.3],[70.89,-35.93,-12.9],[72.23,-34.92,-12.5],[73.54,-33.89,-12.1],[74.81,-32.85,-11.7],[76.05,-31.79,-11.3],[77.26,-30.72,-10.9],[78.45,-29.64,-10.5],[79.6,-28.54,-10.1],[80.73,-27.44,-9.7],[81.84,-26.32,-9.3],[82.92,-25.19,-8.9],[83.98,-24.05,-8.5],[85.02,-22.9,-8.1],[86.04,-21.75,-7.7],[87.05,-20.58,-7.3],[88.04,-19.41,-6.9],[89.01,-18.24,-6.5],[89.97,-17.05,-6.1],[90.91,-15.86,-5.7],[91.84,-14.67,-5.3],[92.77,-13.47,-4.9],[93.68,-12.27,-4.5],[94.58,-11.06,-4.1],[95.47,-9.85,-3.7],[96.36,-8.64,-3.3],[97.24,-7.42,-2.9],[98.12,-6.2,-2.5],[98.99,-4.98,-2.1],[99.86,-3.76,-1.7],[100.72,-2.54,-1.3],[101.58,-1.31,-0.9],[102.45,-0.09,-0.5],[103.31,1.13,-0.1],[104.17,2.36,0.3],[105.03,3.58,0.7],[105.9,4.8,1.1],[106.77,6.02,1.5],[107.65,7.24,1.9],[108.53,8.46,2.3],[109.41,9.67,2.7],[110.31,10.88,3.1],[111.21,12.09,3.5],[112.12,13.3,3.9],[113.04,14.5,4.3],[113.97,15.69,4.7],[114.92,16.88,5.1],[115.87,18.07,5.5],[116.84,19.24,5.9],[117.83,20.42,6.3],[118.83,21.58,6.7],[119.85,22.74,7.1],[120.89,23.89,7.5],[121.95,25.03,7.9],[123.03,26.16,8.3],[124.13,27.28,8.7],[125.26,28.39,9.1],[126.41,29.49,9.5],[127.59,30.58,9.9],[128.8,31.65,10.3],[130.04,32.71,10.7],[131.31,33.76,11.1],[132.62,34.79,11.5],[133.96,35.8,11.9],[135.33,36.79,12.3],[136.75,37.77,12.7],[138.2,38.72,13.1],[139.69,39.66,13.5],[141.23,40.57,13.9],[142.81,41.45,14.3],[144.44,42.32,14.7],[146.12,43.15,15.1],[147.84,43.96,15.5],[149.61,44.74,15.9],[151.43,45.48,16.3],[153.3,46.19,16.7],[155.22,46.87,17.1],[157.19,47.51,17.5],[159.21,48.11,17.9],[161.28,48.67,18.3],[163.4,49.19,18.7],[165.56,49.67,19.1],[167.76,50.1,19.5],[170.0,50.49,19.9],[172.28,50.83,20.3],[174.59,51.11,20.7],[176.93,51.35,21.1],[179.28,51.54,21.5],[-178.34,51.68,21.9],[-175.95,51.76,22.3],[-173.55,51.79,22.7],[-171.16,51.77,23.1],[-168.77,51.69,23.5],[-166.39,51.56,23.9],[-164.03,51.38,24.3],[-161.69,51.15,24.7],[-159.37,50.87,25.1],[-157.09,50.54,25.5],[-154.85,50.16,25.9],[-152.64,49.74,26.3],[-150.47,49.26,26.7],[-148.35,48.75,27.1],[-146.28,48.2,27.5],[-144.25,47.6,27.9],[-142.28,46.96,28.3],[-140.35,46.29,28.7],[-138.47,45.59,29.1],[-136.65,44.85,29.5],[-134.87,44.08,29.9],[-133.14,43.27,30.3],[-131.46,42.44,30.7],[-129.83,41.59,31.1],[-128.24,40.7,31.5],[-126.7,39.8,31.9],[-125.2,38.87,32.3],[-123.74,37.92,32.7],[-122.33,36.95,33.1],[-120.95,35.96,33.5],[-119.6,34.95,33.9],[-118.3,33.92,34.3],[-117.02,32.88,34.7],[-115.78,31.83,35.1],[-114.57,30.76,35.5],[-113.38,29.67,35.9],[-112.23,28.58,36.3],[-111.1,27.47,36.7],[-109.99,26.35,37.1],[-108.91,25.23,37.5],[-107.85,24.09,37.9],[-106.81,22.94,38.3],[-105.79,21.79,38.7],[-104.78,20.63,39.1],[-103.8,19.46,39.5],[-102.83,18.28,39.9],[-101.87,17.1,40.3],[-100.92,15.91,40.7],[-99.99,14.72,41.1],[-99.07,13.53,41.5],[-98.16,12.32,41.9],[-97.26,11.12,42.3],[-96.37,9.91,42.7],[-95.48,8.7,43.1],[-94.6,7.49,43.5],[-93.73,6.27,43.9],[-92.86,5.05,44.3],[-91.99,3.83,44.7],[-91.13,2.61,45.1],[-90.27,1.39,45.5],[-89.41,0.17,45.9],[-88.55,-1.05,46.3]]},"c4":{"rise_utc":"2026-10-31 13:28:32","culm_utc":"2026-10-31 13:31:51","set_utc":"2026-10-31 13:35:11","maxalt":87.0,"path":[[216.22,10.02],[216.26,11.16],[216.31,12.4],[216.37,13.73],[216.43,15.19],[216.5,16.77],[216.58,18.52],[216.68,20.46],[216.8,22.62],[216.93,25.07],[217.1,27.85],[217.31,31.04],[217.57,34.74],[217.91,39.05],[218.38,44.13],[219.05,50.11],[220.1,57.13],[221.99,65.25],[226.31,74.39],[245.21,83.92],[4.55,84.08],[24.25,74.56],[28.65,65.41],[30.56,57.25],[31.63,50.21],[32.31,44.21],[32.78,39.11],[33.13,34.78],[33.4,31.07],[33.61,27.87],[33.78,25.08],[33.92,22.63],[34.05,20.45],[34.15,18.51],[34.24,16.76],[34.32,15.17],[34.39,13.72],[34.46,12.38],[34.52,11.14],[34.57,9.99]],"stars":[{"name":"Vega","V":0.029999999329447746,"alt":18.6,"az":310.8},{"name":"Achernar","V":0.46000000834465027,"alt":24.0,"az":158.4},{"name":"Altair","V":0.7599999904632568,"alt":41.2,"az":280.7},{"name":"Fomalhaut","V":1.159999966621399,"alt":59.1,"az":182.9},{"name":"Deneb","V":1.25,"alt":35.8,"az":329.4},{"name":"alf Gru","V":1.7100000381469727,"alt":40.3,"az":192.6},{"name":"Mirfak","V":1.7899999618530273,"alt":16.8,"az":37.5},{"name":"Kaus Australis","V":1.809999942779541,"alt":15.6,"az":233.6},{"name":"Peacock","V":1.9179999828338623,"alt":23.8,"az":202.5},{"name":"Hamal","V":2.009999990463257,"alt":40.5,"az":59.6},{"name":"Diphda","V":2.009999990463257,"alt":59.0,"az":129.4},{"name":"Alpheratz","V":2.059999942779541,"alt":58.2,"az":27.1},{"name":"Nunki","V":2.066999912261963,"alt":24.0,"az":240.3},{"name":"Enif","V":2.390000104904175,"alt":68.2,"az":294.1}]}};
+const W=85.6,H=53.98,NS="http://www.w3.org/2000/svg";
+const ME={name:"WONG ZHUN HAO",title:"B.Eng. Electrical & Electronic Engineering · NTU",phone:"+00 0000 0000",email:"zhunhaowong@gmail.com",web:"wongzhunhao.com"};
+const MCU_W=21,MCU_H=13.2;
+const MASKS={
+  black:{mask:"#141414",edge:"#0b0b0b",cu:"#2b261b",silk:"#f3f1ea",enig:"#d6b45d",ledBody:"#efe9dc"},
+  white:{mask:"#f1f0ea",edge:"#d9d7cd",cu:"#e2e0d5",silk:"#1d1d1b",enig:"#cfa94e",ledBody:"#fbf8f0"},
+  blue:{mask:"#1c3c86",edge:"#122b66",cu:"#27499a",silk:"#f2f4fa",enig:"#d8b860",ledBody:"#eef0f4"},
+  green:{mask:"#1d5a35",edge:"#123f22",cu:"#276b42",silk:"#f2f4ee",enig:"#d6b45d",ledBody:"#eef0ea"}
+};
+
+/* ---------- helpers ---------- */
+const el=(tag,attrs={},parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;};
+function text(g,o,fill){const t=el("text",{x:o.x,y:o.y,"font-size":o.s,fill,"font-family":o.mono?"JetBrains Mono, monospace":"Inter, sans-serif","font-weight":o.w||500,"letter-spacing":o.ls||0,"text-anchor":o.a||"start",opacity:o.o??1},g);t.textContent=o.t;return t;}
+const line=(g,a,b,attrs)=>el("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,...attrs},g);
+function shorten(a,b,k1,k2=k1){const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);return [{x:a.x+dx*k1/L,y:a.y+dy*k1/L},{x:b.x-dx*k2/L,y:b.y-dy*k2/L}];}
+const poly=(g,pts,attrs)=>el("polyline",{points:pts.map(p=>Array.isArray(p)?p.join(","):p.x+","+p.y).join(" "),fill:"none","stroke-linejoin":"round","stroke-linecap":"round",...attrs},g);
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const P=a=>a.map(([x,y,mag])=>({x,y,mag}));
+const inMcu=(v,x,y,pad=1)=>x>v.mcu[0]-pad&&x<v.mcu[0]+MCU_W+pad&&y>v.mcu[1]-pad&&y<v.mcu[1]+MCU_H+pad;
+const seqFrames=(seq,b=1)=>seq.map(i=>i<0?[]:[[i,b]]);
+
+function board(svg,m,uid){
+  const defs=el("defs",{},svg);
+  const glow=el("radialGradient",{id:"glow"+uid},defs);
+  [[0,"#fff4ec",1],[.18,"#ff3b22",.95],[.55,"#ff1a00",.28],[1,"#ff1a00",0]].forEach(([o,c,a])=>el("stop",{offset:o,"stop-color":c,"stop-opacity":a},glow));
+  const sh=el("linearGradient",{id:"sheen"+uid,x1:0,y1:0,x2:1,y2:1},defs);
+  [[0,"#fff",.07],[.5,"#fff",0],[1,"#000",.08]].forEach(([o,c,a])=>el("stop",{offset:o,"stop-color":c,"stop-opacity":a},sh));
+  const cl=el("clipPath",{id:"in"+uid},defs);el("rect",{x:6.6,y:6.6,width:W-13.2,height:H-13.2},cl);
+  el("rect",{x:0,y:0,width:W,height:H,rx:3,fill:m.mask,stroke:m.edge,"stroke-width":.25},svg);
+  for(let i=0;i<4;i++){const d=4.175+i*.7;el("rect",{x:d,y:d,width:W-2*d,height:H-2*d,rx:.4,fill:"none",stroke:m.cu,"stroke-width":.35},svg);}
+}
+const sheen=(svg,uid)=>el("rect",{x:0,y:0,width:W,height:H,rx:3,fill:`url(#sheen${uid})`,"pointer-events":"none"},svg);
+function mcu(g,m,x,y){
+  const p=el("g",{class:"parts"},g);
+  for(let i=0;i<5;i++) el("path",{d:`M${x+16+i*.9} ${y+3} v-3.5`,stroke:m.cu,"stroke-width":.2,fill:"none"},p);
+  const bx=x+1.2,by=y+2.2;
+  for(let i=0;i<10;i++){const px=bx+.6+i*1.27;
+    el("rect",{x:px,y:by-1.3,width:.55,height:1.6,fill:m.enig},p);el("rect",{x:px,y:by+7.2,width:.55,height:1.6,fill:m.enig},p);
+    el("rect",{x:px+.07,y:by-.9,width:.41,height:1.1,fill:"#c9c9c9"},p);el("rect",{x:px+.07,y:by+7.3,width:.41,height:1.1,fill:"#c9c9c9"},p);}
+  el("rect",{x:bx,y:by,width:12.8,height:7.5,rx:.3,fill:"#262626"},p);
+  el("circle",{cx:bx+1,cy:by+6.4,r:.35,fill:"#3a3a3a"},p);
+  text(p,{t:"ATTINY1616",x:bx+6.4,y:by+4.3,s:.95,a:"middle",mono:1},"#7a7a7a");
+  el("rect",{x:x+15.4,y:y+4.6,width:1.6,height:1.6,fill:"#2a2a2a"},p);
+  const smd=(cx,cy,w,h,c)=>{el("rect",{x:cx-w/2,y:cy-h/2,width:w,height:h,fill:m.enig},p);el("rect",{x:cx-w*.3,y:cy-h/2,width:w*.6,height:h,fill:c},p);};
+  for(let i=0;i<5;i++) smd(x+18.6,y+1.4+i*1.25,1,.5,"#1d1d1d");
+  smd(x+15.2,y+8,1,.5,"#b59a6a");smd(x+17,y+8,1,.5,"#b59a6a");smd(x+16.1,y+9.6,1.6,.8,"#1d1d1d");
+  ["UPDI","VCC","GND"].forEach((l,i)=>{const cx=x+2+i*4.3,cy=y+12.3;el("circle",{cx,cy,r:.75,fill:m.enig},p);text(p,{t:l,x:cx+1,y:cy+.28,s:.75,mono:1},m.silk);});
+  text(p,{t:"JP1",x:x+15.2,y:y+12.6,s:.75,mono:1},m.silk);
+}
+function led(g,m,uid,x,y){
+  el("rect",{x:x-.95,y:y-.5,width:1.9,height:1,fill:m.enig,rx:.05},g);
+  el("rect",{x:x-.55,y:y-.42,width:1.1,height:.84,fill:m.ledBody},g);
+  el("rect",{x:x-.33,y:y-.3,width:.66,height:.6,fill:"#f6d2c9",opacity:.85},g);
+  return el("circle",{cx:x,cy:y,r:4.2,fill:`url(#glow${uid})`,opacity:0,"pointer-events":"none"},g);
+}
+function nfc(g,x,y,c,s=1){
+  const gg=el("g",{transform:`translate(${x} ${y}) scale(${s})`,fill:"none",stroke:c,"stroke-width":.35,"stroke-linecap":"round"},g);
+  for(let i=0;i<3;i++){const r=1+i*.9;el("path",{d:`M${r*Math.cos(-.8)} ${r*Math.sin(-.8)} A${r} ${r} 0 0 1 ${r*Math.cos(.8)} ${r*Math.sin(.8)}`},gg);}
+  el("circle",{cx:0,cy:0,r:.35,fill:c,stroke:"none"},gg);
+}
+function stackedName(g,m,sub){text(g,{t:"WONG",x:8.5,y:12.6,s:3.2,w:700,ls:.4},m.silk);text(g,{t:"ZHUN HAO",x:8.5,y:16.4,s:3.2,w:700,ls:.4},m.silk);
+  if(sub)text(g,{t:sub,x:8.5,y:19.8,s:1.25,mono:1,ls:.35},m.silk);}
+
+/* ---------- A · real star fields ---------- */
+function sky(key){const d=DATA[key];return {leds:d.leds,dots:d.dots,all:[...d.leds,...d.dots],lines:d.lines,mcu:d.mcu};}
+function starLines(g,s,attrs,k=1.4){s.lines.forEach(([a,b])=>{const A=s.all[a],B=s.all[b];const ka=a<s.leds.length?k:.6,kb=b<s.leds.length?k:.6;const [p,q]=shorten(A,B,ka,kb);line(g,p,q,attrs);});}
+function starDots(g,s,m){s.dots.forEach(p=>el("circle",{cx:p.x,cy:p.y,r:p.id.startsWith("M")||p.id.startsWith("NGC")?.9:.32,fill:p.id.startsWith("M")||p.id.startsWith("NGC")?"none":m.silk,stroke:m.silk,"stroke-width":.12,"stroke-dasharray":p.id.startsWith("M")||p.id.startsWith("NGC")?".25 .25":"none"},g));}
+function starLabels(g,s,m,off={}){s.all.forEach(p=>{if(!p.label)return;const [dx,dy,a]=off[p.id]||[1.5,-1.1,"start"];text(g,{t:p.label,x:p.x+dx,y:p.y+dy,s:.9,mono:1,ls:.08,a},m.silk);});}
+function skyFrames(s,order){const bright=s.leds.reduce((b,p,i)=>(p.V??9)<(s.leds[b].V??9)?i:b,0);
+  return [...seqFrames(order||s.leds.map((p,i)=>[p.x,i]).sort((a,b)=>a[0]-b[0]).map(q=>q[1])),...[1,.35,1,.35,1].map(b=>[[bright,b]]),[],[]];}
+const ix=(s,id)=>s.leds.findIndex(p=>p.id===id);
+
+const SCO=sky("sco"),CRU=sky("cru"),SGR=sky("sgr"),PLE=sky("ple");
+
+/* ---------- C helpers ---------- */
+const lonX=l=>8+(l+180)/360*70, latY=l=>27-l*.3;
+const C1={cx:43,cy:118,R:80,kmPerMm:6371/80};
+const arcY=(r,x)=>C1.cy-Math.sqrt(r*r-(x-C1.cx)**2);
+const rISS=C1.R+420/C1.kmPerMm, rTop=C1.R+2000/C1.kmPerMm;
+const C2_V={mcu:[8.5,33.6]};
+const C2_LEDS=(()=>{const tr=DATA.c2.track,out=[];let last=null;
+  const sg=tr.reduce((b,p,i)=>Math.abs(p[2])<Math.abs(tr[b][2])?i:b,0);
+  const pick=i=>{const [lo,la,t]=tr[i];return {x:lonX(lo),y:latY(la),t};};
+  out.push({...pick(sg),sg:true});
+  for(let i=0;i<tr.length;i+=1){const p=pick(i);if(p.x<8.6||p.x>77.4||inMcu(C2_V,p.x,p.y,1.6))continue;
+    if(out.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<4.6))continue;out.push(p);}
+  return out.sort((a,b)=>a.t-b.t).slice(0,20);})();
+const SKY={cx:28,cy:27,R:18.5};
+const skyXY=(az,alt)=>{const r=SKY.R*(90-alt)/90,a=az*Math.PI/180;return {x:SKY.cx-r*Math.sin(a),y:SKY.cy-r*Math.cos(a)};};
+const C4_PATH=DATA.c4.path.map(([az,alt])=>skyXY(az,alt));
+const C4_STARS=DATA.c4.stars.filter(s=>["Vega","Achernar","Altair","Fomalhaut","Deneb","Hamal","Diphda"].includes(s.name)).map(s=>({...skyXY(s.az,s.alt),name:s.name}));
+const C4_PASS=(()=>{const out=[];C4_PATH.forEach(p=>{if(!out.length||Math.hypot(p.x-out[out.length-1].x,p.y-out[out.length-1].y)>3.1)out.push(p);});return out;})();
+const sgt=s=>{const [h,m]=s.slice(11,16).split(":").map(Number);return String((h+8)%24).padStart(2,"0")+":"+String(m).padStart(2,"0");};
+
+/* ---------- variants ---------- */
+const V=[
+/* ===== A ===== */
+{g:"A",id:"a1",title:"A1 · Scorpius",mask:"black",tag:"Black · white silk · ENIG",
+ pitch:`Scorpius exactly as it sits on a star chart: SIMBAD positions, north up, east left, at ${DATA.sco.scale} mm per degree. The figure is kept small (about 24 × 24 mm) so it sits in the sky rather than filling the card. Stars too close to a brighter neighbour at this size are printed dots instead of LEDs. Antares is the only label and pulses at the end.`,
+ leds:SCO.leds,mcu:SCO.mcu,back:"sco",frames:()=>skyFrames(SCO,["bet1 Sco","del Sco","pi Sco","rho Sco","sig Sco","alf Sco","tau Sco","eps Sco","mu1 Sco","zet2 Sco","eta Sco","tet Sco","iot1 Sco","kap Sco","lam Sco","G Sco"].map(i=>ix(SCO,i)).filter(i=>i>=0)),
+ art(g,m){starLines(g,SCO,{stroke:m.silk,"stroke-width":.17,opacity:.9});starDots(g,SCO,m);
+   starLabels(g,SCO,m,{"alf Sco":[0,-1.5,"middle"]});
+   if(DATA.sco.rot){const t=DATA.sco.rot*Math.PI/180,nx=Math.sin(t),ny=-Math.cos(t),c={x:10.5,y:44};
+   line(g,{x:c.x-nx*1.4,y:c.y-ny*1.4},{x:c.x+nx*1.4,y:c.y+ny*1.4},{stroke:m.silk,"stroke-width":.14});
+   el("path",{d:`M${c.x+nx*1.9} ${c.y+ny*1.9} L${c.x+nx*1.1-ny*.45} ${c.y+ny*1.1+nx*.45} L${c.x+nx*1.1+ny*.45} ${c.y+ny*1.1-nx*.45} Z`,fill:m.silk},g);
+   text(g,{t:"N",x:c.x+nx*3,y:c.y+ny*3+.35,s:.9,mono:1,a:"middle"},m.silk);}
+   stackedName(g,m,"SCORPIUS");},
+ spec:[["LEDs",`${SCO.leds.length} stars; ${SCO.dots.length} printed dots (incl. M4)`],["Animation","Claws to sting, then Antares pulses"]]},
+{g:"A",id:"a2",title:"A2 · Southern Cross",mask:"white",tag:"White · black silk · ENIG",
+ pitch:"Crux with its two pointer stars, α and β Centauri, laid out like a printed star-atlas page. Ring size follows brightness. A dashed guide runs from the pointers to the Cross, and the Jewel Box cluster is marked next to Mimosa.",
+ leds:CRU.leds,mcu:CRU.mcu,back:"sco",frames:()=>skyFrames(CRU,[5,6,1,2,0,3,4,6,5]),
+ art(g,m){starLines(g,CRU,{stroke:m.silk,"stroke-width":.18});starDots(g,CRU,m);
+   CRU.leds.forEach(p=>el("circle",{cx:p.x,cy:p.y,r:1.25+Math.max(0,3.8-(p.V??0.8))*.38,fill:"none",stroke:m.silk,"stroke-width":.12},g));
+   const a=CRU.leds[ix(CRU,"alf Cen")],b=CRU.leds[ix(CRU,"bet Cen")],c=CRU.leds[ix(CRU,"gam Cru")],d=CRU.leds[ix(CRU,"alf Cru")];
+   const mid={x:(c.x+d.x)/2,y:(c.y+d.y)/2};const [p,q]=shorten(b,mid,3,3.4);line(g,p,q,{stroke:m.silk,"stroke-width":.14,"stroke-dasharray":".6 .5"});
+   starLabels(g,CRU,m,{"alf Cen":[0,-2.6,"middle"],"bet Cen":[0,-2.6,"middle"],"alf Cru":[-2.2,2.4,"end"],"gam Cru":[2.2,.35,"start"],"bet Cru":[-2.6,.35,"end"],"NGC 4755":[-1.2,2.3,"end"]});
+   stackedName(g,m,"CRUX · CENTAURUS");nfc(g,9.5,25,m.silk,.85);},
+ spec:[["LEDs",`${CRU.leds.length} stars; β Mus and the Jewel Box printed`],["Animation","Pointers, then the Cross star by star, then Rigil Kentaurus pulses"]]},
+{g:"A",id:"a3",title:"A3 · Pleiades",mask:"blue",tag:"Blue · white silk · ENIG",
+ pitch:"The Seven Sisters filling the card, magnified so 2° of sky spans about 54 mm. The 20 brightest members are LEDs, with the nine named stars labelled and a fine dot haze for the reflection nebula. The animation twinkles at random, like the real cluster.",
+ leds:PLE.leds,mcu:PLE.mcu,back:"sco",
+ frames:()=>{const r=rng(11),f=[];for(let k=0;k<26;k++)f.push([[Math.floor(r()*PLE.leds.length),1],[Math.floor(r()*PLE.leds.length),.4]]);return [...f,[[0,1]],[],[[0,1]],[]];},
+ art(g,m,v,uid){const r=rng(5),cg=el("g",{"clip-path":`url(#in${uid})`},g);
+   PLE.leds.filter(p=>p.V<4.4).forEach(p=>{for(let k=0;k<90;k++){const a=r()*6.283,d=Math.sqrt(r())*7;const x=p.x+Math.cos(a)*d,y=p.y+Math.sin(a)*d*.8;
+     if(inMcu(v,x,y,.6)||PLE.leds.some(q=>Math.hypot(q.x-x,q.y-y)<1.4)||x<27&&y<22)continue;el("circle",{cx:x,cy:y,r:.07+r()*.1,fill:m.silk,opacity:.12+r()*.3},cg);}});
+   starDots(g,PLE,m);starLabels(g,PLE,m,{"*  20 Tau":[0,2.4,"middle"],"*  27 Tau":[0,2.4,"middle"],"* eta Tau":[0,2.4,"middle"],"*  17 Tau":[0,2.4,"middle"],"*  23 Tau":[0,2.4,"middle"]});
+   stackedName(g,m,"M45 · PLEIADES");nfc(g,9.5,25,m.silk,.85);},
+ spec:[["LEDs","20 brightest members (V < 7)"],["Animation","Random twinkle, Alcyone blinks at the end"]]},
+{g:"A",id:"a4",title:"A4 · The Teapot",mask:"black",tag:"Black · exposed ENIG copper lines",
+ pitch:"Sagittarius's Teapot asterism in gold copper lines, with the Milky Way rising from the spout like steam. The deep-sky objects in the steam (the Lagoon, Trifid and Omega nebulae, M22 and M25) are LEDs too. The animation fills the pot, then the steam rises.",
+ leds:SGR.leds,mcu:SGR.mcu,back:"sco",
+ frames:()=>{const t=["eps Sgr","del Sgr","gam2 Sgr","lam Sgr","phi Sgr","zet Sgr","tau Sgr","sig Sgr"].map(i=>ix(SGR,i));const s=["M8","M20","M25","M17","M22"].map(i=>ix(SGR,i));
+   return [...seqFrames(t),[],...seqFrames(s,.9),...seqFrames(s,.9),[],[]];},
+ art(g,m,v,uid){const r=rng(9),cg=el("g",{"clip-path":`url(#in${uid})`},g);
+   const band=["gam2 Sgr","M8","M20","M17"].map(i=>SGR.all.find(p=>p.id===i));
+   for(let k=0;k<900;k++){const seg=Math.floor(r()*3),t=r(),A=band[seg],B=band[seg+1];const w=2.2+seg*1.4+t*1.4;
+     const x=A.x+(B.x-A.x)*t+(r()+r()-1)*w*1.6,y=A.y+(B.y-A.y)*t+(r()+r()-1)*w*.9;
+     if(inMcu(v,x,y,.6)||SGR.all.some(q=>Math.hypot(q.x-x,q.y-y)<1.5)||x<27&&y<22)continue;el("circle",{cx:x,cy:y,r:.07+r()*.12,fill:m.silk,opacity:.15+r()*.35},cg);}
+   starLines(g,SGR,{stroke:m.enig,"stroke-width":.3,"stroke-linecap":"round"},1.25);starDots(g,SGR,m);
+   ["M8","M20","M22","M17","M25"].forEach(i=>{const p=SGR.leds[ix(SGR,i)];el("circle",{cx:p.x,cy:p.y,r:1.7,fill:"none",stroke:m.silk,"stroke-width":.12,"stroke-dasharray":".3 .3"},g);});
+   starLabels(g,SGR,m,{"M8":[2.2,.35,"start"],"M20":[2.2,.35,"start"],"M17":[2.2,.35,"start"],"M22":[0,3,"middle"],"M25":[2.2,.35,"start"],"sig Sgr":[0,2.6,"middle"],"eps Sgr":[0,2.6,"middle"],"M28":[1.2,-.9,"start"]});
+   stackedName(g,m,"SAGITTARIUS");nfc(g,9.5,25,m.silk,.85);},
+ spec:[["LEDs",`${SGR.leds.length}: 8 Teapot stars, 4 field stars, 5 deep-sky objects`],["Animation","Teapot traced, then the steam rises twice"]]},
+
+/* ===== B ===== */
+{g:"B",id:"b1",title:"B1 · Traceroute",mask:"white",tag:"White · black silk · ENIG path",
+ pitch:"A router mesh with one gold path from “you” to “me”. A packet hops along it, then the last node blinks three times as a reply.",
+ leds:P([[10,25],[19,17],[29,23],[39,14.5],[49,21],[59,13.5],[68,20],[76,30],[14,11],[28,9.5],[36,29],[46,31],[53,9.5],[58,28],[66,34],[76,12.5],[41,40],[54,40],[76,42],[21,30]]),
+ mcu:[8.5,33.5],back:"net",
+ frames:()=>[[],...seqFrames([0,1,2,3,4,5,6,7,7,-1,7,-1,7,-1]),[],...[12,9,15,10,18,13].map(i=>[[i,.55]]),[]],
+ art(g,m,v){const seen=new Set();
+   v.leds.forEach((p,i)=>v.leds.map((q,j)=>[j,Math.hypot(q.x-p.x,q.y-p.y)]).filter(d=>d[0]!==i).sort((a,b)=>a[1]-b[1]).slice(0,3).forEach(([j,d])=>{
+     const k=[i,j].sort().join("-");if(seen.has(k)||d>15)return;seen.add(k);const [a,b]=shorten(p,v.leds[j],1.4);line(g,a,b,{stroke:m.silk,"stroke-width":.12,"stroke-dasharray":".5 .45",opacity:.55});}));
+   for(let i=0;i<7;i++){const [a,b]=shorten(v.leds[i],v.leds[i+1],1.4);line(g,a,b,{stroke:m.enig,"stroke-width":.45,"stroke-linecap":"round"});}
+   for(let i=0;i<8;i++){const p=v.leds[i];text(g,{t:i===0?"you":i===7?"me":String(i),x:p.x,y:p.y-1.35,s:1.05,mono:1,a:"middle",w:700},m.silk);}
+   text(g,{t:"$ traceroute wongzhunhao.com",x:30.5,y:47.2,s:1.55,mono:1},m.silk);nfc(g,75,47,m.silk,.85);},
+ spec:[["LEDs","8 path hops + 12 mesh nodes"],["Animation","Hop-by-hop packet, then 3 reply blinks"]]},
+{g:"B",id:"b2",title:"B2 · Switch faceplate",mask:"green",tag:"Green · white silk · ENIG",
+ pitch:"The card is the front panel of a 20-port switch. Each LED is the link light for one RJ45 port. On tap, the ports flicker with traffic, then all 20 come up in a link sweep.",
+ leds:(()=>{const a=[];for(let i=0;i<10;i++)a.push({x:11+i*6.8,y:11.6});for(let i=0;i<10;i++)a.push({x:11+i*6.8,y:28.4});return a;})(),
+ mcu:[8.5,33.5],back:"net",
+ frames:()=>{const r=rng(3),f=[];for(let k=0;k<22;k++)f.push([[Math.floor(r()*20),1],[Math.floor(r()*20),.6]]);f.push([]);
+   [0,10,1,11,2,12,3,13,4,14,5,15,6,16,7,17,8,18,9,19].forEach(i=>f.push([[i,1]]));f.push([],[]);return f;},
+ art(g,m,v){const port=(x,y,flip)=>{const w=5.4,h=4.5,s=flip?-1:1;
+     const d=`M${x-w/2} ${y} h${w} v${h*s} h${-1.4} v${.9*s} h${-1.2} v${.9*s} h${-.4} v${-.9*s} h${-1.2} v${-.9*s} h${-1.4} z`;
+     el("path",{d,fill:"none",stroke:m.silk,"stroke-width":.16},g);
+     for(let k=0;k<8;k++)el("rect",{x:x-2+k*.52,y:flip?y-1.1:y+.5,width:.28,height:.6,fill:m.enig},g);};
+   v.leds.forEach((p,i)=>{const top=i<10;port(p.x,top?p.y+1.2:p.y-1.2,!top);
+     text(g,{t:String(top?2*i+1:2*(i-10)+2),x:p.x+2.1,y:p.y+.35,s:.85,mono:1},m.silk);});
+   text(g,{t:"LINK/ACT",x:8.2,y:9.2,s:.8,mono:1,o:.8},m.silk);
+   text(g,{t:ME.name,x:33,y:40.4,s:2.5,w:700,ls:.3},m.silk);text(g,{t:"ZH-SW01 · 20 × 1GbE · CONSOLE: TAP",x:33,y:43.6,s:1.15,mono:1},m.silk);
+   nfc(g,75,41.5,m.silk,.85);},
+ spec:[["LEDs","20 port link lights, 2 rows of 10"],["Animation","Random traffic, then a link-up sweep"]]},
+{g:"B",id:"b3",title:"B3 · Terminal",mask:"black",tag:"Black · white silk · ENIG",
+ pitch:"The front is a macOS Terminal window: traffic-light buttons, a centred “zhunhao — -zsh — 80×24” title and the zsh % prompt, running ping. Each output line has a status LED that lights as it “prints”, then the bar along the bottom fills like a progress meter.",
+ leds:(()=>{const a=[];for(let i=0;i<9;i++)a.push({x:75,y:13+i*2.25});for(let i=0;i<11;i++)a.push({x:33+i*4.2,y:44.6});return a;})(),
+ mcu:[8.5,33.6],back:"net",
+ frames:()=>[...seqFrames([0,1,2,3,4,5,6,7,8]),[],...seqFrames([9,10,11,12,13,14,15,16,17,18,19]),[[8,1],[19,1]],[],[[8,1],[19,1]],[],[]],
+ art(g,m,v){// macOS Terminal window: rounded frame, title bar with traffic lights, zsh prompt
+   el("rect",{x:8,y:7.8,width:69.6,height:25,rx:1.6,fill:"none",stroke:m.silk,"stroke-width":.2},g);
+   line(g,{x:8,y:10.8},{x:77.6,y:10.8},{stroke:m.silk,"stroke-width":.12,opacity:.7});
+   [0,1,2].forEach(i=>el("circle",{cx:10+i*1.6,cy:9.3,r:.55,fill:m.silk},g));
+   text(g,{t:"zhunhao — -zsh — 80×24",x:42.8,y:9.7,s:1,a:"middle",w:600,o:.85},m.silk);
+   const P="zhunhao ~ % ",H="wongzhunhao.com";
+   const L=[[P,"ping -c 4 wongzhunhao.com"],["",`PING ${H}: 56 data bytes`],
+     ...[[0,".912"],[1,".847"],[2,".861"],[3,".893"]].map(([n,t])=>["",`64 bytes: icmp_seq=${n} ttl=56 time=0${t} ms`]),
+     ["","4 packets transmitted, 4 packets received, 0.0% packet loss"],[P,"whoami"],["","Wong Zhun Hao  # B.Eng. Electrical & Electronic Engineering · NTU"]];
+   L.forEach(([pr,t],i)=>{const y=13.4+i*2.25;const tt=el("text",{x:9.6,y,"font-size":1.2,fill:m.silk,"font-family":"JetBrains Mono, monospace"},g);
+     if(pr){const a=el("tspan",{"font-weight":700},tt);a.textContent=pr;}const b=el("tspan",{},tt);b.textContent=t;});
+   text(g,{t:"[",x:30.6,y:45,s:1.6,mono:1},m.silk);text(g,{t:"]",x:76.4,y:45,s:1.6,mono:1},m.silk);
+   text(g,{t:ME.name,x:33,y:39.4,s:2.4,w:700,ls:.3},m.silk);text(g,{t:"tap to connect ▍",x:33,y:41.8,s:1.1,mono:1,o:.8},m.silk);},
+ spec:[["LEDs","9 line-status LEDs + 11-segment progress bar"],["Animation","Lines print one by one, then the bar fills"]]},
+
+/* ===== C ===== */
+{g:"C",id:"c1",title:"C1 · Orbit to scale",mask:"black",tag:"Black · white silk · ENIG",
+ pitch:"Earth's edge and two orbits at true scale (1 mm ≈ 80 km): the ISS at 420 km and a 2,000 km orbit above it, both centred on Earth. Labels are kept to the two orbit altitudes and the word EARTH. The ISS lights each ground station it passes over, then a higher satellite crosses more slowly.",
+ leds:(()=>{const a=[];[12,19.8,27.6,35.4,43.2,51,58.8,66.6,74.4].forEach(x=>a.push({x,y:arcY(rISS,x)}));
+   [11,19.5,28,36.5,45,53.5,62,70.5].forEach(x=>a.push({x,y:arcY(rTop,x)}));[20,43,66].forEach(x=>a.push({x,y:arcY(C1.R,x)+2.6}));return a;})(),
+ mcu:[56.5,19.6],back:"sat",
+ frames(){const f=[];for(let i=0;i<9;i++){const fr=[[i,1]];const gs=[17,18,19].find(s=>Math.abs(this.leds[s].x-this.leds[i].x)<4);fr.push(gs!==undefined?[gs,.9]:[i-1,.3]);f.push(fr);}
+   f.push([]);for(let i=9;i<17;i++){f.push([[i,1]]);f.push([[i,1]]);}return [...f,[],[]];},
+ art(g,m,v,uid){const cg=el("g",{"clip-path":`url(#in${uid})`},g),c=[C1.cx,C1.cy];
+   el("circle",{cx:c[0],cy:c[1],r:C1.R,fill:"none",stroke:m.silk,"stroke-width":.25},cg);
+   for(let i=1;i<4;i++)el("circle",{cx:c[0],cy:c[1],r:C1.R-i*2.4,fill:"none",stroke:m.silk,"stroke-width":.09,opacity:.4},cg);
+   [-.45,-.3,-.15,0,.15,.3,.45].forEach(a=>el("ellipse",{cx:c[0],cy:c[1],rx:C1.R*Math.abs(Math.sin(a))+.01,ry:C1.R,fill:"none",stroke:m.silk,"stroke-width":.09,opacity:.3},cg));
+   el("circle",{cx:c[0],cy:c[1],r:rISS,fill:"none",stroke:m.silk,"stroke-width":.16,"stroke-dasharray":".6 .45"},cg);
+   el("circle",{cx:c[0],cy:c[1],r:rTop,fill:"none",stroke:m.silk,"stroke-width":.14,"stroke-dasharray":".2 .45"},cg);
+   [17,18,19].forEach(i=>{const p=v.leds[i];el("path",{d:`M${p.x-1.3} ${p.y+1.5} L${p.x} ${p.y+.75} L${p.x+1.3} ${p.y+1.5}`,fill:"none",stroke:m.silk,"stroke-width":.14},g);});
+   text(g,{t:"ISS · 420 km",x:47,y:arcY(rISS,47)-1.4,s:.95,mono:1},m.silk);
+   text(g,{t:"2,000 km · TOP OF LEO",x:31,y:arcY(rTop,31)-1.4,s:.95,mono:1},m.silk);
+   text(g,{t:"EARTH",x:43,y:46.4,s:.95,mono:1,ls:.6,a:"middle",o:.85},m.silk);
+   text(g,{t:ME.name,x:9,y:27.4,s:2.6,w:700,ls:.3},m.silk);nfc(g,48,26.5,m.silk,.85);},
+ spec:[["LEDs","9 on the ISS orbit + 8 on the 2,000 km orbit + 3 ground stations"],["Animation","ISS pass with station contacts, then the slower high orbit"]]},
+{g:"C",id:"c2",title:"C2 · ISS ground track",mask:"blue",tag:"Blue · white silk · ENIG track",
+ pitch:`One real orbit of the ISS, centred on its pass over Singapore at ${sgt(DATA.c2.t_sg)} SGT on 27 Oct 2026 (it passes ${DATA.c2.miss_deg}° from the city). The track is gold copper on a lat/long grid; the Singapore LED is ringed and blinks on arrival.`,
+ leds:C2_LEDS,mcu:C2_V.mcu,back:"sat",
+ frames(){const n=this.leds.length,sg=this.leds.findIndex(p=>p.sg);const f=[];for(let i=0;i<n;i++)f.push(i?[[i,1],[i-1,.3]]:[[i,1]]);return [...f,[[sg,1]],[],[[sg,1]],[],[]];},
+ art(g,m){const gg=el("g",{opacity:.35},g);
+   for(let lo=-180;lo<=180;lo+=30)line(gg,{x:lonX(lo),y:7.5},{x:lonX(lo),y:46.5},{stroke:m.silk,"stroke-width":.08});
+   for(let la=-60;la<=60;la+=30)line(gg,{x:7.5,y:latY(la)},{x:78.1,y:latY(la)},{stroke:m.silk,"stroke-width":la===0?.18:.08});
+   let seg=[],prev=null;DATA.c2.track.forEach(([lo,la])=>{if(prev!==null&&Math.abs(lo-prev)>180){poly(g,seg,{stroke:m.enig,"stroke-width":.35});seg=[];}seg.push([lonX(lo),latY(la)]);prev=lo;});poly(g,seg,{stroke:m.enig,"stroke-width":.35});
+   const sg={x:lonX(103.8198),y:latY(1.3521)};el("circle",{cx:sg.x,cy:sg.y,r:2.1,fill:"none",stroke:m.silk,"stroke-width":.18},g);
+   text(g,{t:"SINGAPORE 1.35°N 103.82°E",x:sg.x+2.5,y:sg.y+2.7,s:.9,mono:1},m.silk);
+   [["180°",-180],["90°W",-90],["0°",0],["90°E",90]].forEach(([t,lo])=>text(g,{t,x:lonX(lo)+.4,y:8.7,s:.8,mono:1,o:.6},m.silk));
+   [["30°N",30],["EQ",0],["30°S",-30]].forEach(([t,la])=>text(g,{t,x:77.8,y:latY(la)-.4,s:.8,mono:1,o:.6,a:"end"},m.silk));
+   text(g,{t:ME.name,x:77.6,y:46.6,s:1.7,w:700,ls:.3,a:"end"},m.silk);text(g,{t:"ISS · 25544",x:31,y:46.6,s:1,mono:1,o:.85},m.silk);},
+ spec:[["LEDs",`${C2_LEDS.length} along the track, one at Singapore`],["Data","CelesTrak TLE epoch 24 Oct 2026, skyfield"]]},
+{g:"C",id:"c3",title:"C3 · Polar view",mask:"white",tag:"White · black silk · ENIG",
+ pitch:"Earth seen from above the north pole, with three orbits around it: solid, dashed and dotted. Each orbit is centred on Earth. Satellites move on one ring at a time, and two ground stations blink when a satellite is overhead. Not to scale.",
+ leds:[...(()=>{const e=(c,rx,ry,rot,n,ph)=>{const r=rot*Math.PI/180,o=[];for(let i=0;i<n;i++){const t=ph+i/n*2*Math.PI,x=rx*Math.cos(t),y=ry*Math.sin(t);o.push({x:c[0]+x*Math.cos(r)-y*Math.sin(r),y:c[1]+x*Math.sin(r)+y*Math.cos(r)});}return o;};
+   return [...e([27,27],18.5,10.5,18,6,.3),...e([27,27],18,13,-48,6,1.3),...e([27,27],14,14,0,6,1.0)];})(),{x:23.5,y:23.5},{x:31,y:31}],
+ mcu:[57,33.6],back:"sat",
+ frames(){const f=[];for(let k=0;k<30;k++){const o=Math.floor(k/10)%3;const i=o*6+k%6;const fr=[[i,1]];
+   const d=[18,19].map(s=>[s,Math.hypot(this.leds[s].x-this.leds[i].x,this.leds[s].y-this.leds[i].y)]).sort((a,b)=>a[1]-b[1])[0];if(d[1]<11.5)fr.push([d[0],.8]);f.push(fr);}return [...f,[],[]];},
+ art(g,m){const E=[27,27];
+   el("circle",{cx:E[0],cy:E[1],r:8,fill:"none",stroke:m.silk,"stroke-width":.25},g);
+   [2.7,5.4].forEach(r=>el("circle",{cx:E[0],cy:E[1],r,fill:"none",stroke:m.silk,"stroke-width":.1,opacity:.5},g));
+   for(let a=0;a<180;a+=45){const t=a*Math.PI/180;line(g,{x:E[0]-8*Math.cos(t),y:E[1]-8*Math.sin(t)},{x:E[0]+8*Math.cos(t),y:E[1]+8*Math.sin(t)},{stroke:m.silk,"stroke-width":.1,opacity:.5});}
+   el("ellipse",{cx:27,cy:27,rx:18.5,ry:10.5,transform:"rotate(18 27 27)",fill:"none",stroke:m.silk,"stroke-width":.17},g);
+   el("ellipse",{cx:27,cy:27,rx:18,ry:13,transform:"rotate(-48 27 27)",fill:"none",stroke:m.silk,"stroke-width":.17,"stroke-dasharray":".8 .5"},g);
+   el("circle",{cx:27,cy:27,r:14,fill:"none",stroke:m.silk,"stroke-width":.17,"stroke-dasharray":".2 .4"},g);
+   text(g,{t:ME.name,x:50,y:13.4,s:2.6,w:700,ls:.3},m.silk);text(g,{t:"VIEW FROM 90°N · NOT TO SCALE",x:50,y:16.6,s:1.1,mono:1,o:.85},m.silk);
+   [["LEO","none"],["MEO",".8 .5"],["GEO",".2 .4"]].forEach(([t,d],i)=>{line(g,{x:50,y:21.6+i*2.6},{x:55,y:21.6+i*2.6},{stroke:m.silk,"stroke-width":.17,"stroke-dasharray":d});text(g,{t,x:56,y:22+i*2.6,s:1.05,mono:1},m.silk);});
+   nfc(g,72,24,m.silk,.85);},
+ spec:[["LEDs","6 on each of 3 orbits + 2 ground stations"],["Animation","Each orbit takes a turn; stations blink overhead"]]},
+{g:"C",id:"c4",title:"C4 · ISS over NTU",mask:"black",tag:"Black · white silk · ENIG",
+ pitch:`An all-sky chart from NTU (zenith in the centre, horizon at the rim, north up, east left) showing a real, nearly overhead ISS pass on 31 Oct 2026, ${sgt(DATA.c4.rise_utc)}–${sgt(DATA.c4.set_utc)} SGT, peaking at ${DATA.c4.maxalt}°. The stars are the bright ones actually up at that moment. The ISS crosses the sky LED by LED.`,
+ leds:[...C4_PASS,...C4_STARS],mcu:[57,33.6],back:"sat",
+ frames(){const n=C4_PASS.length,f=[];for(let i=0;i<n;i++)f.push(i?[[i,1],[i-1,.3]]:[[i,1]]);f.push([]);for(let i=n;i<this.leds.length;i++)f.push([[i,.6]]);return [...f,[],[]];},
+ art(g,m){const c=SKY;el("circle",{cx:c.cx,cy:c.cy,r:c.R,fill:"none",stroke:m.silk,"stroke-width":.22},g);
+   [30,60].forEach(a=>el("circle",{cx:c.cx,cy:c.cy,r:c.R*(90-a)/90,fill:"none",stroke:m.silk,"stroke-width":.1,"stroke-dasharray":".4 .4",opacity:.55},g));
+   line(g,{x:c.cx-c.R,y:c.cy},{x:c.cx+c.R,y:c.cy},{stroke:m.silk,"stroke-width":.08,opacity:.4});line(g,{x:c.cx,y:c.cy-c.R},{x:c.cx,y:c.cy+c.R},{stroke:m.silk,"stroke-width":.08,opacity:.4});
+   [["N",0,-1],["E",-1,0],["S",0,1],["W",1,0]].forEach(([t,dx,dy])=>text(g,{t,x:c.cx+dx*(c.R-1.5),y:c.cy+dy*(c.R-1.5)+.45,s:1.1,w:700,a:"middle"},m.silk));
+   poly(g,C4_PATH,{stroke:m.enig,"stroke-width":.3});
+   const ends=[[C4_PATH[0],sgt(DATA.c4.rise_utc)],[C4_PATH[C4_PATH.length-1],sgt(DATA.c4.set_utc)]];
+   ends.forEach(([p,t])=>text(g,{t,x:p.x+(p.x<c.cx?-1.6:1.6),y:p.y+(p.y<c.cy?-1.2:2.2),s:.9,mono:1,a:p.x<c.cx?"end":"start"},m.silk));
+   C4_STARS.forEach(s=>text(g,{t:s.name.toUpperCase(),x:s.x,y:s.y+2.5,s:.8,mono:1,a:"middle",o:.85},m.silk));
+   text(g,{t:ME.name,x:52,y:13.4,s:2.4,w:700,ls:.25},m.silk);
+   ["ISS OVER NTU","31 OCT 2026",`${sgt(DATA.c4.rise_utc)}–${sgt(DATA.c4.set_utc)} SGT · MAX ${DATA.c4.maxalt}°`].forEach((t,i)=>text(g,{t,x:52,y:16.8+i*1.9,s:1.1,mono:1,o:.9},m.silk));
+   nfc(g,54,27,m.silk,.85);},
+ spec:[["LEDs",`${C4_PASS.length} along the pass + ${C4_STARS.length} bright stars`],["Data","CelesTrak TLE + skyfield; stars from SIMBAD + astropy"]]}
+];
+
+/* ---------- backs ---------- */
+function back(v){
+  const m=MASKS[v.mask],uid=v.id+"b",s=m.silk;
+  const svg=el("svg",{viewBox:`-1 -1 ${W+2} ${H+2}`,class:"cardsvg",role:"img","aria-label":v.title+" back"});
+  board(svg,m,uid);const g=el("g",{class:"art"},svg);
+  const head=(y)=>{text(g,{t:ME.name,x:10,y,s:4,w:700,ls:.45},s);text(g,{t:ME.title.toUpperCase(),x:10,y:y+4.4,s:1.45,ls:.25},s);};
+  const tap=(y)=>{nfc(g,70,y,s,1.6);text(g,{t:"TAP TO CONNECT",x:70.5,y:y+6.6,s:1.3,w:600,ls:.35,a:"middle"},s);};
+  const foot={a1:"α Sco  16h 29m 24s  −26° 25′ 55″",a2:"α Cru  12h 26m 36s  −63° 05′ 57″",a3:"M45  03h 47m  +24° 07′",a4:"M8  18h 03m 37s  −24° 23′ 12″"}[v.id];
+  if(v.back==="sco"){head(20);line(g,{x:10,y:27.4},{x:36,y:27.4},{stroke:s,"stroke-width":.15});
+    [ME.phone,ME.email,ME.web].forEach((t,i)=>text(g,{t,x:10,y:31.6+i*3,s:1.75,mono:1},s));
+    text(g,{t:foot,x:10,y:44.6,s:1.1,mono:1,ls:.05},s);tap(32);}
+  if(v.back==="net"){text(g,{t:"zhunhao ~ % whois "+ME.web,x:10,y:13.5,s:1.45,mono:1},s);head(21);
+    [["tel",ME.phone],["mail",ME.email],["web",ME.web]].forEach(([k,t],i)=>{text(g,{t:k,x:10,y:31.5+i*3,s:1.75,mono:1,w:700},s);text(g,{t,x:17,y:31.5+i*3,s:1.75,mono:1},s);});
+    text(g,{t:"64 bytes from zhunhao: icmp_seq=1 ttl=64 time=0.1 ms",x:10,y:45,s:1.05,mono:1},s);tap(31);}
+  if(v.back==="sat"){head(18.5);[ME.phone,ME.email,ME.web].forEach((t,i)=>text(g,{t,x:10,y:29+i*3,s:1.75,mono:1},s));
+    {text(g,{t:"1 25544U 98067A   26297.20915682  .00007800  00000+0  14938-3 0  9991",x:10,y:43,s:.95,mono:1},s);
+    text(g,{t:"2 25544  51.6335  21.6229 0006884 302.9098  57.1228 15.49030149591752",x:10,y:44.7,s:.95,mono:1},s);}tap(28);}
+  sheen(svg,uid);return svg;
+}
+function front(v){
+  const m=MASKS[v.mask],uid=v.id+"f";
+  const svg=el("svg",{viewBox:`-1 -1 ${W+2} ${H+2}`,class:"cardsvg",role:"img","aria-label":v.title+" front"});
+  board(svg,m,uid);v.art(el("g",{class:"art"},svg),m,v,uid);mcu(svg,m,v.mcu[0],v.mcu[1]);
+  const halos=v.leds.map(p=>led(svg,m,uid,p.x,p.y));sheen(svg,uid);return {svg,halos};
+}
+// layout checks: LEDs inside the antenna, clear of the MCU block and of each other
+function check(v){const bad=[];if(v.leds.length>20)bad.push(`${v.leds.length} LEDs > 20`);
+  v.leds.forEach((p,i)=>{if(p.x<7.6||p.x>78||p.y<7.3||p.y>46.7)bad.push(`LED ${i} in antenna band`);if(inMcu(v,p.x,p.y,1.2))bad.push(`LED ${i} on MCU`);
+    v.leds.forEach((q,j)=>{if(j>i&&Math.abs(p.x-q.x)<2.7&&Math.abs(p.y-q.y)<1.8)bad.push(`LEDs ${i}/${j} too close`);});});
+  if(bad.length)console.warn(v.id,bad.join("; "));}
+
+// Reference chart: the same A1 points rotated back to north-up, as the constellation sits in the sky
+function scoReference(){
+  const all=[...SCO.leds,...SCO.dots],t=-DATA.sco.rot*Math.PI/180;
+  const cx=all.reduce((s,p)=>s+p.x,0)/all.length,cy=all.reduce((s,p)=>s+p.y,0)/all.length;
+  const q=all.map(p=>{const x=p.x-cx,y=p.y-cy;return {x:x*Math.cos(t)-y*Math.sin(t),y:x*Math.sin(t)+y*Math.cos(t)};});
+  const xs=q.map(p=>p.x),ys=q.map(p=>p.y),x0=Math.min(...xs)-4,y0=Math.min(...ys)-4,w=Math.max(...xs)-x0+4,h=Math.max(...ys)-y0+4;
+  const fig=document.createElement("figure");fig.style.cssText="margin:18px 0 0;max-width:340px";
+  const svg=el("svg",{viewBox:`${x0} ${y0} ${w} ${h}`,style:"width:100%;height:auto;background:#0f1115;border-radius:6px"});
+  SCO.lines.forEach(([i,j])=>line(svg,q[i],q[j],{stroke:"#8c93a3","stroke-width":.2}));
+  q.forEach((p,i)=>el("circle",{cx:p.x,cy:p.y,r:i<SCO.leds.length?.7:.4,fill:i===SCO.leds.findIndex(s=>s.id==="alf Sco")?"#ff6a4d":"#e9ecf2"},svg));
+  text(svg,{t:"N ↑   E ←",x:x0+1.5,y:y0+3,s:1.6,mono:1},"#8c93a3");
+  fig.append(svg);fig.insertAdjacentHTML("beforeend",`<figcaption>Reference · same SIMBAD points, north up, east left (the card turns this ${DATA.sco.rot}°)</figcaption>`);return fig;}
+
+/* ---------- render ---------- */
+const GROUPS={A:["Night sky","Four different parts of the sky, all plotted from catalogue positions. All four are visible from Singapore."],
+  B:["Network","Traceroute, switch faceplate and terminal."],C:["Satellite","Orbits and passes, with real ISS data where a date is shown."]};
+const SHOW=new Set(["b3","c1"]); // shortlist; other variants stay defined above
+const root=document.getElementById("concepts"),players=[];
+Object.entries(GROUPS).forEach(([k,[name,desc]])=>{
+  if(!V.some(v=>v.g===k&&SHOW.has(v.id)))return;
+  const grp=document.createElement("div");grp.className="group";grp.id=k;grp.innerHTML=`<h2>${k} · ${name}</h2><p>${desc}</p>`;root.append(grp);
+  V.filter(v=>v.g===k&&SHOW.has(v.id)).forEach(v=>{check(v);
+    const sec=document.createElement("section");sec.className="variant";sec.id=v.id;
+    sec.innerHTML=`<div class="head"><h3>${v.title}</h3><span class="tag">${v.tag}</span></div><p class="pitch">${v.pitch}</p><div class="sides"><figure class="f"></figure><figure class="b"></figure></div>`;
+    const F=front(v);sec.querySelector(".f").append(F.svg);sec.querySelector(".f").insertAdjacentHTML("beforeend","<figcaption>Front · components side</figcaption>");
+    sec.querySelector(".b").append(back(v));sec.querySelector(".b").insertAdjacentHTML("beforeend","<figcaption>Back · contact side</figcaption>");
+    if(v.id==="a1"&&DATA.sco.rot)sec.append(scoReference());
+    const dl=document.createElement("dl");v.spec.forEach(([a,b])=>dl.insertAdjacentHTML("beforeend",`<dt>${a}</dt><dd>${b}</dd>`));sec.append(dl);
+    grp.append(sec);players.push({halos:F.halos,fr:v.frames(),i:0});});
+});
+let playing=true;
+setInterval(()=>players.forEach(p=>{p.halos.forEach(h=>h.setAttribute("opacity",0));
+  if(playing){p.fr[p.i%p.fr.length].forEach(([n,b])=>p.halos[n]&&p.halos[n].setAttribute("opacity",b));p.i++;}}),260);
+const toggle=(id,fn)=>{const b=document.getElementById(id);b.onclick=()=>{const on=b.getAttribute("aria-pressed")!=="true";b.setAttribute("aria-pressed",on);fn(on,b);};};
+toggle("play",(on,b)=>{playing=on;b.textContent=on?"Animation on":"Animation off";});
+toggle("lines",on=>document.querySelectorAll(".art").forEach(g=>g.style.display=on?"":"none"));
+toggle("parts",on=>document.querySelectorAll(".parts").forEach(g=>g.style.display=on?"":"none"));
+</script>
+</body>
+</html>
